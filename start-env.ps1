@@ -1,0 +1,1 @@
+docker run --name cool -td --rm --mount type=bind,source=$($PSScriptRoot),destination=/mnt youngyee/coolenv
