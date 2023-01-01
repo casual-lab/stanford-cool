@@ -10,17 +10,23 @@ CS142 Compilers Assignments Solutions
 
 ## 使用
 
-- Docker
+#### Docker
 
 ```powershell
-./start-env.ps1
+# Powershell
+./start-env.ps1  
 # docker run --name cool -td --rm --mount type=bind,source=$($PSScriptRoot),destination=/mnt youngyee/coolenv
 ```
 
-- Getting start with VM && Installing Directly on Linux
+```bash
+# Ubuntu
+bash ./start-env.sh
+```
 
-<https://courses.edx.org/courses/course-v1:StanfordOnline+SOE.YCSCS1+3T2020/9f961242edfb45eba0969a5a7592916d/>
-<https://courses.edx.org/courses/course-v1:StanfordOnline+SOE.YCSCS1+3T2020/6b750292e90d4950b895f621a5671b49/>
+#### Getting start with VM && Installing Directly on Linux
+
+- [with VM](https://courses.edx.org/courses/course-v1:StanfordOnline+SOE.YCSCS1+3T2020/9f961242edfb45eba0969a5a7592916d/)
+- [Directly on Linux](https://courses.edx.org/courses/course-v1:StanfordOnline+SOE.YCSCS1+3T2020/6b750292e90d4950b895f621a5671b49/)
 
 ## 自动测试脚本
 
