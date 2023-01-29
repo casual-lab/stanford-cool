@@ -1,3 +1,5 @@
+.vscode
+.idea
 cool/bin
 cool/etc
 cool/examples
@@ -9,5 +11,13 @@ cool/student-dist.tar.gz
 cool/assignments/*/*
 !cool/assignments/PA2/cool.flex
 !cool/assignments/PA2/pa1-grading.pl
+
 !cool/assignments/PA3/cool.y
 !cool/assignments/PA3/pa2-grading.pl
+
+!cool/assignments/PA4/Makefile
+!cool/assignments/PA4/cool-tree.h
+!cool/assignments/PA4/cool-tree.handcode.h
+!cool/assignments/PA4/semant.cc
+!cool/assignments/PA4/semant.h
+!cool/assignments/PA4/pa3-grading.pl
