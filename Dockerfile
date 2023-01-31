@@ -10,4 +10,4 @@ RUN mkdir /usr/class \
     && wget https://courses.edx.org/asset-v1:StanfordOnline+SOE.YCSCS1+1T2020+type@asset+block@student-dist.tar.gz -O student-dist.tar.gz \
     && tar -xf student-dist.tar.gz \
     && ln -s /usr/class ~/cool \
-    && export 'export LC_ALL=C' >> ~/.bashrc
+    && echo 'export LC_ALL=C' >> ~/.bashrc
