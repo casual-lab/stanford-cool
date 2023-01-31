@@ -166,7 +166,7 @@ void ClassTable::build_inherit_graph(Classes &classes){
         inherit_graph.emplace(cls->get_name(), *(new InheritElem(Object)));
     }
     // 2) try to establish inheritance relationship. 
-    //    Undefined parents will be replaced with 'Object'
+    //    Invalid parents will be replaced with 'Object'
     for (auto p : type_nodes){
         if(p.second->get_name() == Object) continue;
         Class_ cls = p.second;
@@ -392,68 +392,6 @@ bool type_le(Symbol a, Symbol b, ClassTableP ctp){
     return type_le(a, b, ctp->inherit_graph, ctp->cur_cls);
 }
 
-bool is_inherited_methods_conflicted(MethodSignatures* existing_sigs, 
-                                     method_class* mm, 
-                                     MethodSignature *sig){
-    if(existing_sigs->find(mm->get_name()) == existing_sigs->end()) 
-        return false;
-    if(existing_sigs->at(mm->get_name()).size() != sig->size()) 
-        return true;
-    for(unsigned j = 0; j<sig->size(); j++){
-        if (existing_sigs->at(mm->get_name())[j] != sig->at(j)) return true;
-    }
-    return false;
-}
-
-void do_dispatch_semant_walk(ClassTableP ctp, Expression expr, Symbol name, Symbol type_name,
-                             Expressions actual, tree_node* cur_node, Symbol &type){
-    expr->semant_walk(ctp);
-    Symbol t0 = expr->type;
-    MethodSignature sig;
-    Symbol target_c;
-
-    if(type_name == NULL){
-        target_c = t0 == SELF_TYPE? ctp->cur_cls->get_name() : t0;
-    }else{
-        if(type_name == SELF_TYPE || ! type_le(t0, type_name, ctp)){
-            ctp->cur_node_semant_err(cur_node)<<"Static-dispatch Type Error. "<<endl;
-            type = Object;
-            return;
-        }
-        target_c = type_name;
-    }
-    if(ctp->method_env.find(target_c) == ctp->method_env.end()){
-        ctp->cur_node_semant_err(cur_node)<<"Class used in the dispatch is not found."<<endl;
-        type = Object; return;
-    }
-    if(ctp->method_env.at(target_c).find(name) == ctp->method_env.at(target_c).end()){
-        ctp->cur_node_semant_err(cur_node)<<"Method not found."<<endl;
-        type = Object; return;
-    }
-    sig = ctp->method_env.at(target_c).at(name);
-    if(sig.size()-1 != (unsigned)actual->len()){
-        ctp->cur_node_semant_err(cur_node)<< \
-        "The number of parameters is inconsistent with the method signature."<< \
-        name->get_string()<<endl;
-    }
-    for(unsigned i = 0, j = actual->first(); 
-        i < sig.size()-1 && actual->more(j); 
-        i++, j=actual->next(j))
-    {
-        actual->nth(j)->semant_walk(ctp);
-        Symbol ti_ = sig[i], ti = actual->nth(j)->type;
-        if(! type_le(ti, ti_, ctp)){
-            ctp->cur_node_semant_err(cur_node)<< \
-            "Type Error of the parameter at the position "<<i<<"."<<endl;
-        }
-    }
-    if(sig.back() == SELF_TYPE){
-        type = t0;
-    }else{
-        type = sig.back();
-    }
-}
-
 int inherit_len(Symbol a, const std::map<Symbol, InheritElem> &inherit_graph){
     int l = 0;
     while(inherit_graph.at(a).parent != No_class){
@@ -654,6 +592,55 @@ void cond_class::semant_walk(ClassTableP ctp){
     type = type_lub(then_exp->type, else_exp->type, ctp);
 }
 
+void do_dispatch_semant_walk(ClassTableP ctp, Expression expr, Symbol name, Symbol type_name,
+                             Expressions actual, tree_node* cur_node, Symbol &type){
+    expr->semant_walk(ctp);
+    Symbol t0 = expr->type;
+    MethodSignature sig;
+    Symbol target_c;
+
+    if(type_name == NULL){
+        target_c = t0 == SELF_TYPE? ctp->cur_cls->get_name() : t0;
+    }else{
+        if(type_name == SELF_TYPE || ! type_le(t0, type_name, ctp)){
+            ctp->cur_node_semant_err(cur_node)<<"Static-dispatch Type Error. "<<endl;
+            type = Object;
+            return;
+        }
+        target_c = type_name;
+    }
+    if(ctp->method_env.find(target_c) == ctp->method_env.end()){
+        ctp->cur_node_semant_err(cur_node)<<"Class used in the dispatch is not found."<<endl;
+        type = Object; return;
+    }
+    if(ctp->method_env.at(target_c).find(name) == ctp->method_env.at(target_c).end()){
+        ctp->cur_node_semant_err(cur_node)<<"Method not found."<<endl;
+        type = Object; return;
+    }
+    sig = ctp->method_env.at(target_c).at(name);
+    if(sig.size()-1 != (unsigned)actual->len()){
+        ctp->cur_node_semant_err(cur_node)<< \
+        "The number of parameters is inconsistent with the method signature."<< \
+        name->get_string()<<endl;
+    }
+    for(unsigned i = 0, j = actual->first(); 
+        i < sig.size()-1 && actual->more(j); 
+        i++, j=actual->next(j))
+    {
+        actual->nth(j)->semant_walk(ctp);
+        Symbol ti_ = sig[i], ti = actual->nth(j)->type;
+        if(! type_le(ti, ti_, ctp)){
+            ctp->cur_node_semant_err(cur_node)<< \
+            "Type Error of the parameter at the position "<<i<<"."<<endl;
+        }
+    }
+    if(sig.back() == SELF_TYPE){
+        type = t0;
+    }else{
+        type = sig.back();
+    }
+}
+
 void static_dispatch_class::semant_walk(ClassTableP ctp){
     do_dispatch_semant_walk(ctp, expr, name, type_name, actual, this, type);
 }
@@ -768,9 +755,9 @@ void attr_class::semant_walk(ClassTableP ctp){
 /*
     Check conflict between inherited attributes.
 
-    Attributes cannot be reefined.
+    Attributes cannot be redefined.
     Attributes are declared from the root (ancestors) to leaf (subclass).
-    Type cheching of initial values.
+    Type of the initial value must conform the declared type.
  */
 void class__class::resolve_inherited_attr(ClassTableP ctp){
     if(parent != No_class && ctp->type_nodes.find(parent) != ctp->type_nodes.end()){
@@ -796,12 +783,25 @@ void class__class::resolve_inherited_attr(ClassTableP ctp){
     }
 }
 
+bool is_inherited_methods_conflicted(MethodSignatures* existing_sigs, 
+                                     method_class* mm, 
+                                     MethodSignature *sig){
+    if(existing_sigs->find(mm->get_name()) == existing_sigs->end()) 
+        return false;
+    if(existing_sigs->at(mm->get_name()).size() != sig->size()) 
+        return true;
+    for(unsigned j = 0; j<sig->size(); j++){
+        if (existing_sigs->at(mm->get_name())[j] != sig->at(j)) return true;
+    }
+    return false;
+}
+
 /*
     Check conflict between inherited methods.
 
-    Methods can be redefined (overrided), but must have the same type signature.
+    Methods can be redefined (override), but must have the same type signature.
     Methods with the same name and different signatures are not allowed.
-    Subclasses' overrided methods have higher priority than their parents.
+    Subclasses' overriden methods have higher priority than their parents.
  */
 void class__class::resolve_inherited_methods(ClassTableP ctp){
     ctp->cur_cls = this;
@@ -898,7 +898,8 @@ void program_class::semant()
 {
     initialize_constants();
 
-    /* ClassTable constructor may do some semantic analysis */
+    // ClassTable constructor: 
+    //      discard invalid class definition & check inheritance 
     ClassTableP ctp = new ClassTable(classes);
 
     if(semant_debug) {
@@ -906,7 +907,7 @@ void program_class::semant()
         ctp->print_type_nodes();
         ctp->print_inherit_graph();
     }
-    /* some semantic analysis code may go here */
+    // recursive downward traversal
     semant_walk(ctp);
 
     if (ctp->errors()) {
