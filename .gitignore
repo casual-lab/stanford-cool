@@ -21,3 +21,10 @@ cool/assignments/*/*
 !cool/assignments/PA4/semant.cc
 !cool/assignments/PA4/semant.h
 !cool/assignments/PA4/pa3-grading.pl
+
+!cool/assignments/PA5/Makefile
+!cool/assignments/PA5/cool-tree.h
+!cool/assignments/PA5/cool-tree.handcode.h
+!cool/assignments/PA5/cgen.cc
+!cool/assignments/PA5/cgen.h
+!cool/assignments/PA5/emit.h
